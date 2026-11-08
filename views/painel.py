@@ -1,6 +1,7 @@
 """Tela inicial: visão do mês, projeção dos próximos meses e acerto do casal."""
 from __future__ import annotations
 
+import altair as alt
 import pandas as pd
 import streamlit as st
 
@@ -36,15 +37,37 @@ def render() -> None:
     
     # 1. Garante a ordenação cronológica real baseada no formato 'YYYY-MM'
     df = df.sort_values("mes")
-    
     df["Mês"] = df["mes"].map(rotulo_mes)
-    
-    # 2. Define o 'Mês' como índice mantendo a ordem correta no gráfico
-    grafico = df.set_index("Mês")[["saldo_mes", "saldo_acumulado"]]
-    grafico.columns = ["Saldo do mês", "Saldo acumulado"]
-    
-    st.bar_chart(grafico["Saldo do mês"])
-    st.line_chart(grafico["Saldo acumulado"])
+
+    # 2. Prepara os dados para o gráfico com ordenação explícita no Altair
+    df_grafico = df.melt(
+        id_vars=["Mês"], 
+        value_vars=["saldo_mes", "saldo_acumulado"],
+        var_name="Metrica", 
+        value_name="Valor"
+    )
+    df_grafico["Metrica"] = df_grafico["Metrica"].map({
+        "saldo_mes": "Saldo do mês", 
+        "saldo_acumulado": "Saldo acumulado"
+    })
+
+    # Gráfico de barras para o saldo do mês ordenado cronologicamente
+    chart_barras = alt.Chart(df_grafico[df_grafico["Metrica"] == "Saldo do mês"]).mark_bar().encode(
+        x=alt.X("Mês:N", sort=list(df["Mês"]), title="Mês"),
+        y=alt.Y("Valor:Q", title="Saldo do mês (R$)"),
+        tooltip=["Mês", "Valor"]
+    ).properties(height=300)
+
+    st.altair_chart(chart_barras, use_container_width=True)
+
+    # Gráfico de linha para o saldo acumulado
+    chart_linha = alt.Chart(df_grafico[df_grafico["Metrica"] == "Saldo acumulado"]).mark_line(point=True).encode(
+        x=alt.X("Mês:N", sort=list(df["Mês"]), title="Mês"),
+        y=alt.Y("Valor:Q", title="Saldo acumulado (R$)"),
+        tooltip=["Mês", "Valor"]
+    ).properties(height=300)
+
+    st.altair_chart(chart_linha, use_container_width=True)
 
     if atual["saldo_mes"] < 0:
         st.warning(f"Em {rotulo_mes(mes)} as saídas previstas superam as entradas.")
