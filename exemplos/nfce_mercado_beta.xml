@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
+  <NFe>
+    <infNFe Id="NFe35261099888777000166650010000056781000056783" versao="4.00">
+      <ide>
+        <mod>65</mod>
+        <serie>1</serie>
+        <nNF>5678</nNF>
+        <dhEmi>2026-11-02T10:05:44-03:00</dhEmi>
+      </ide>
+      <emit>
+        <CNPJ>99888777000166</CNPJ>
+        <xNome>MERCADO BETA DISTRIBUIDORA LTDA</xNome>
+        <xFant>Mercado Beta</xFant>
+      </emit>
+      <det nItem="1">
+        <prod>
+          <cProd>9001</cProd>
+          <cEAN>7891000100103</cEAN>
+          <xProd>LEITE COND MOÇA 395 G</xProd>
+          <NCM>04029900</NCM>
+          <CFOP>5102</CFOP>
+          <uCom>UN</uCom>
+          <qCom>1.0000</qCom>
+          <vUnCom>5.9900000000</vUnCom>
+          <vProd>5.99</vProd>
+          <cEANTrib>7891000100103</cEANTrib>
+          <uTrib>UN</uTrib>
+          <qTrib>1.0000</qTrib>
+          <vUnTrib>5.9900000000</vUnTrib>
+          <indTot>1</indTot>
+        </prod>
+      </det>
+      <det nItem="2">
+        <prod>
+          <cProd>9002</cProd>
+          <cEAN>SEM GTIN</cEAN>
+          <xProd>BANANA PRATA KG</xProd>
+          <NCM>08039000</NCM>
+          <CFOP>5102</CFOP>
+          <uCom>KG</uCom>
+          <qCom>0.9800</qCom>
+          <vUnCom>6.4900000000</vUnCom>
+          <vProd>6.36</vProd>
+          <cEANTrib>SEM GTIN</cEANTrib>
+          <uTrib>KG</uTrib>
+          <qTrib>0.9800</qTrib>
+          <vUnTrib>6.4900000000</vUnTrib>
+          <indTot>1</indTot>
+        </prod>
+      </det>
+      <det nItem="3">
+        <prod>
+          <cProd>9003</cProd>
+          <cEAN>7896065300017</cEAN>
+          <xProd>ARROZ TP1 5KG</xProd>
+          <NCM>10063021</NCM>
+          <CFOP>5102</CFOP>
+          <uCom>UN</uCom>
+          <qCom>1.0000</qCom>
+          <vUnCom>27.5000000000</vUnCom>
+          <vProd>27.50</vProd>
+          <cEANTrib>7896065300017</cEANTrib>
+          <uTrib>UN</uTrib>
+          <qTrib>1.0000</qTrib>
+          <vUnTrib>27.5000000000</vUnTrib>
+          <indTot>1</indTot>
+        </prod>
+      </det>
+      <det nItem="4">
+        <prod>
+          <cProd>9004</cProd>
+          <cEAN>7891234567895</cEAN>
+          <xProd>DETERGENTE LIQUIDO 500ML</xProd>
+          <NCM>34022000</NCM>
+          <CFOP>5102</CFOP>
+          <uCom>UN</uCom>
+          <qCom>3.0000</qCom>
+          <vUnCom>2.4900000000</vUnCom>
+          <vProd>7.47</vProd>
+          <cEANTrib>7891234567895</cEANTrib>
+          <uTrib>UN</uTrib>
+          <qTrib>3.0000</qTrib>
+          <vUnTrib>2.4900000000</vUnTrib>
+          <indTot>1</indTot>
+        </prod>
+      </det>
+      <total>
+        <ICMSTot>
+          <vProd>47.32</vProd>
+          <vDesc>0.00</vDesc>
+          <vNF>47.32</vNF>
+        </ICMSTot>
+      </total>
+    </infNFe>
+  </NFe>
+  <protNFe versao="4.00">
+    <infProt>
+      <chNFe>35261099888777000166650010000056781000056783</chNFe>
+    </infProt>
+  </protNFe>
+</nfeProc>

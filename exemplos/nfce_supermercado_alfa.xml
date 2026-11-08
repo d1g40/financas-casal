@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
+  <NFe>
+    <infNFe Id="NFe35261011222333000181650010000012341000012349" versao="4.00">
+      <ide>
+        <mod>65</mod>
+        <serie>1</serie>
+        <nNF>1234</nNF>
+        <dhEmi>2026-10-25T14:32:10-03:00</dhEmi>
+      </ide>
+      <emit>
+        <CNPJ>11222333000181</CNPJ>
+        <xNome>SUPERMERCADO ALFA COMERCIO LTDA</xNome>
+        <xFant>Supermercado Alfa</xFant>
+      </emit>
+      <det nItem="1">
+        <prod>
+          <cProd>0001</cProd>
+          <cEAN>7891000100103</cEAN>
+          <xProd>LEITE CONDENSADO MOCA 395G</xProd>
+          <NCM>04029900</NCM>
+          <CFOP>5102</CFOP>
+          <uCom>UN</uCom>
+          <qCom>2.0000</qCom>
+          <vUnCom>6.4900000000</vUnCom>
+          <vProd>12.98</vProd>
+          <cEANTrib>7891000100103</cEANTrib>
+          <uTrib>UN</uTrib>
+          <qTrib>2.0000</qTrib>
+          <vUnTrib>6.4900000000</vUnTrib>
+          <indTot>1</indTot>
+        </prod>
+      </det>
+      <det nItem="2">
+        <prod>
+          <cProd>0231</cProd>
+          <cEAN>SEM GTIN</cEAN>
+          <xProd>BANANA PRATA KG</xProd>
+          <NCM>08039000</NCM>
+          <CFOP>5102</CFOP>
+          <uCom>KG</uCom>
+          <qCom>1.3450</qCom>
+          <vUnCom>5.9900000000</vUnCom>
+          <vProd>8.06</vProd>
+          <cEANTrib>SEM GTIN</cEANTrib>
+          <uTrib>KG</uTrib>
+          <qTrib>1.3450</qTrib>
+          <vUnTrib>5.9900000000</vUnTrib>
+          <indTot>1</indTot>
+        </prod>
+      </det>
+      <det nItem="3">
+        <prod>
+          <cProd>0457</cProd>
+          <cEAN>7896065300017</cEAN>
+          <xProd>ARROZ BRANCO TIPO 1 5KG</xProd>
+          <NCM>10063021</NCM>
+          <CFOP>5102</CFOP>
+          <uCom>UN</uCom>
+          <qCom>1.0000</qCom>
+          <vUnCom>28.9000000000</vUnCom>
+          <vProd>28.90</vProd>
+          <cEANTrib>7896065300017</cEANTrib>
+          <uTrib>UN</uTrib>
+          <qTrib>1.0000</qTrib>
+          <vUnTrib>28.9000000000</vUnTrib>
+          <vDesc>2.00</vDesc>
+          <indTot>1</indTot>
+        </prod>
+      </det>
+      <total>
+        <ICMSTot>
+          <vProd>49.94</vProd>
+          <vDesc>2.00</vDesc>
+          <vNF>47.94</vNF>
+        </ICMSTot>
+      </total>
+    </infNFe>
+  </NFe>
+  <protNFe versao="4.00">
+    <infProt>
+      <chNFe>35261011222333000181650010000012341000012349</chNFe>
+    </infProt>
+  </protNFe>
+</nfeProc>
