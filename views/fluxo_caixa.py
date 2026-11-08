@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import date
 
+import altair as alt
 import pandas as pd
 import streamlit as st
 
@@ -44,14 +45,33 @@ def _aba_projecao() -> None:
         return
 
     df = pd.DataFrame(meses)
+    
+    # Garante a ordenação cronológica real baseada no formato 'YYYY-MM'
+    df = df.sort_values("mes")
+    df["Mês"] = df["mes"].map(rotulo_mes)
+
     tabela = pd.DataFrame({
-        "Mês": df["mes"].map(rotulo_mes), "Salários": df["receitas"], "A receber": df["a_receber"],
+        "Mês": df["Mês"], "Salários": df["receitas"], "A receber": df["a_receber"],
         "Contas fixas": df["fixas"], "Parcelas": df["parcelas"], "Avulsos": df["avulsos"],
         "Saldo do mês": df["saldo_mes"], "Saldo acumulado": df["saldo_acumulado"],
     })
     st.dataframe(moeda(tabela, [c for c in tabela.columns if c != "Mês"]), hide_index=True)
-    st.bar_chart(tabela.set_index("Mês")[["Saldo do mês"]])
-    st.line_chart(tabela.set_index("Mês")[["Saldo acumulado"]])
+
+    # Gráfico de barras ordenado cronologicamente com Altair
+    chart_barras = alt.Chart(df).mark_bar().encode(
+        x=alt.X("Mês:N", sort=list(df["Mês"]), title="Mês"),
+        y=alt.Y("saldo_mes:Q", title="Saldo do mês (R$)"),
+        tooltip=["Mês", "saldo_mes"]
+    ).properties(height=300)
+    st.altair_chart(chart_barras, use_container_width=True)
+
+    # Gráfico de linha para o saldo acumulado ordenado com Altair
+    chart_linha = alt.Chart(df).mark_line(point=True).encode(
+        x=alt.X("Mês:N", sort=list(df["Mês"]), title="Mês"),
+        y=alt.Y("saldo_acumulado:Q", title="Saldo acumulado (R$)"),
+        tooltip=["Mês", "saldo_acumulado"]
+    ).properties(height=300)
+    st.altair_chart(chart_linha, use_container_width=True)
 
     st.subheader("Detalhe de um mês")
     mes = st.selectbox("Mês", [m["mes"] for m in meses], format_func=rotulo_mes, key="proj_detalhe")
@@ -92,7 +112,7 @@ def _aba_receitas() -> None:
         try:
             with transacao() as conn:
                 fc.adicionar_receita(conn, pessoa_id, descricao.strip() or "Receita", valor, mes_inicio,
-                                     mes_fim if (tem_fim and recorrente) else None, recorrente)
+                                   mes_fim if (tem_fim and recorrente) else None, recorrente)
             st.success("Receita adicionada.")
         except ValueError as erro:
             st.error(str(erro))
