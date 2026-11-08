@@ -33,9 +33,16 @@ def render() -> None:
 
     st.subheader("Projeção dos próximos 12 meses")
     df = pd.DataFrame(meses)
+    
+    # 1. Garante a ordenação cronológica real baseada no formato 'YYYY-MM'
+    df = df.sort_values("mes")
+    
     df["Mês"] = df["mes"].map(rotulo_mes)
+    
+    # 2. Define o 'Mês' como índice mantendo a ordem correta no gráfico
     grafico = df.set_index("Mês")[["saldo_mes", "saldo_acumulado"]]
     grafico.columns = ["Saldo do mês", "Saldo acumulado"]
+    
     st.bar_chart(grafico["Saldo do mês"])
     st.line_chart(grafico["Saldo acumulado"])
 
@@ -44,3 +51,4 @@ def render() -> None:
     negativos = [rotulo_mes(m["mes"]) for m in meses if m["saldo_acumulado"] < 0]
     if negativos:
         st.warning("Saldo acumulado negativo em: " + ", ".join(negativos) + ".")
+    
