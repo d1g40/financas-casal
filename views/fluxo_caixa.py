@@ -167,26 +167,43 @@ def _aba_contas_fixas() -> None:
 # ----------------------------------------------------------------------
 def _aba_parcelamentos() -> None:
     st.subheader("Cartões de crédito")
+    with transacao() as conn:
+        cartoes = fc.listar_cartoes(conn)
+
+    # Seleção de modo para Cartões (Cadastrar vs Editar)
+    cartao_a_editar = None
+    if cartoes:
+        modo_cartao = st.radio("Ação no Cartão", ["Cadastrar novo", "Editar existente"], horizontal=True, key="modo_cartao")
+        if modo_cartao == "Editar existente":
+            escolha_cartao_id = st.selectbox("Escolha o cartão para editar", [c["id"] for c in cartoes], format_func=lambda i: next(c["nome"] for c in cartoes if c["id"] == i), key="sel_ed_cartao")
+            cartao_a_editar = next(c for c in cartoes if c["id"] == escolha_cartao_id)
+
     with st.form("form_cartao", clear_on_submit=True):
         c1, c2, c3, c4 = st.columns(4)
-        nome = c1.text_input("Nome (ex.: Nubank David)")
-        banco = c2.text_input("Banco/fintech")
-        fechamento = c3.number_input("Dia de fechamento", min_value=1, max_value=31, value=25, step=1)
-        vencimento = c4.number_input("Dia de vencimento", min_value=1, max_value=31, value=5, step=1)
-        enviado = st.form_submit_button("Adicionar cartão")
-    if enviado:
+        nome = c1.text_input("Nome", value=cartao_a_editar["nome"] if cartao_a_editar else "")
+        banco = c2.text_input("Banco/fintech", value=cartao_a_editar["banco"] if cartao_a_editar and cartao_a_editar["banco"] else "")
+        fechamento = c3.number_input("Dia de fechamento", min_value=1, max_value=31, value=cartao_a_editar["dia_fechamento"] if cartao_a_editar and cartao_a_editar.get("dia_fechamento") else 25, step=1)
+        vencimento = c4.number_input("Dia de vencimento", min_value=1, max_value=31, value=cartao_a_editar["dia_vencimento"] if cartao_a_editar and cartao_a_editar.get("dia_vencimento") else 5, step=1)
+        
+        rotulo_botao_cartao = "Atualizar cartão" if cartao_a_editar else "Adicionar cartão"
+        enviado_cartao = st.form_submit_button(rotulo_botao_cartao)
+
+    if enviado_cartao:
         if not nome.strip():
             st.error("Informe o nome do cartão.")
         else:
             try:
                 with transacao() as conn:
-                    fc.adicionar_cartao(conn, nome.strip(), banco.strip(), int(fechamento), int(vencimento))
-                st.success("Cartão adicionado.")
+                    if cartao_a_editar:
+                        fc.atualizar_cartao(conn, cartao_a_editar["id"], nome.strip(), banco.strip(), int(fechamento), int(vencimento))
+                        st.success("Cartão atualizado com sucesso!")
+                    else:
+                        fc.adicionar_cartao(conn, nome.strip(), banco.strip(), int(fechamento), int(vencimento))
+                        st.success("Cartão adicionado.")
+                st.rerun()
             except Exception as erro:  # nome duplicado cai aqui (IntegrityError)
                 st.error(f"Não foi possível salvar o cartão: {erro}")
 
-    with transacao() as conn:
-        cartoes = fc.listar_cartoes(conn)
     tabela_com_exclusao(
         renomear([{**c, "banco": c["banco"] or "-"} for c in cartoes],
                  {"id": "id", "nome": "Cartão", "banco": "Banco", "dia_fechamento": "Fecha dia",
@@ -194,48 +211,89 @@ def _aba_parcelamentos() -> None:
         "tab_cartoes", "Excluir cartões selecionados", _excluir(fc.remover_cartao))
 
     st.divider()
-    st.subheader("Novo parcelamento")
+    st.subheader("Parcelamentos")
     st.caption("Compra parcelada no cartão, empréstimo ou financiamento. A 'competência' é o mês em que a "
                "parcela pesa no caixa (para cartão, o mês de vencimento da fatura).")
+    
+    with transacao() as conn:
+        parcelamentos_atuais = fc.listar_parcelamentos(conn, mes_atual())
+
+    # Seleção de modo para Parcelamentos (Criar novo vs Editar existente)
+    parcelamento_a_editar = None
+    if parcelamentos_atuais:
+        modo_parc = st.radio("Ação no Parcelamento", ["Criar novo", "Editar existente"], horizontal=True, key="modo_parc")
+        if modo_parc == "Editar existente":
+            escolha_parc_id = st.selectbox("Escolha o parcelamento para editar", [p["id"] for p in parcelamentos_atuais], format_func=lambda i: next(p["descricao"] for p in parcelamentos_atuais if p["id"] == i), key="sel_ed_parc")
+            parcelamento_a_editar = next(p for p in parcelamentos_atuais if p["id"] == escolha_parc_id)
+
     opcoes_cartao = {None: "—"} | {c["id"]: c["nome"] for c in cartoes}
-    with st.form("form_parcelamento", clear_on_submit=True):
-        c1, c2, c3 = st.columns(3)
-        descricao = c1.text_input("Descrição (ex.: Notebook, Financiamento do carro)")
-        tipo = c2.selectbox("Tipo", list(ROTULO_TIPO), format_func=ROTULO_TIPO.get)
-        cartao_id = c3.selectbox("Cartão (se for compra no cartão)", list(opcoes_cartao),
-                                 format_func=opcoes_cartao.get)
-        c4, c5, c6 = st.columns(3)
-        valor_parcela = c4.number_input("Valor da parcela (R$)", min_value=0.0, step=10.0, format="%.2f")
-        valor_total = c5.number_input("OU valor total (R$)", min_value=0.0, step=50.0, format="%.2f",
-                                      help="Use só se não souber a parcela. Se os dois forem preenchidos, vale a parcela.")
-        num_parcelas = c6.number_input("Total de parcelas", min_value=1, max_value=480, value=10, step=1)
-        c7, c8 = st.columns(2)
-        numero_inicial = c7.number_input("Parcela em que você está", min_value=1, max_value=480, value=1, step=1,
-                                         help="Para contratos em andamento: se já pagou 6 de 36, informe 7.")
-        mes_primeira = seletor_mes("Mês dessa primeira parcela a lançar", "parc_mes", container=c8)
-        enviado = st.form_submit_button("Criar parcelamento")
-    if enviado:
-        try:
-            if not descricao.strip():
-                raise ValueError("Informe a descrição.")
-            if valor_parcela <= 0 and valor_total <= 0:
-                raise ValueError("Informe o valor da parcela ou o valor total.")
-            with transacao() as conn:
-                fc.criar_parcelamento(
-                    conn, descricao.strip(), tipo, int(num_parcelas), mes_primeira,
-                    valor_parcela=valor_parcela if valor_parcela > 0 else None,
-                    valor_total=None if valor_parcela > 0 else valor_total,
-                    cartao_id=cartao_id, numero_inicial=int(numero_inicial))
-            st.success("Parcelamento criado; as parcelas já entram na projeção.")
-        except ValueError as erro:
-            st.error(str(erro))
+
+    if not parcelamento_a_editar:
+        # Formulário de Criação de Parcelamento
+        with st.form("form_parcelamento", clear_on_submit=True):
+            c1, c2, c3 = st.columns(3)
+            descricao = c1.text_input("Descrição (ex.: Notebook, Financiamento do carro)")
+            tipo = c2.selectbox("Tipo", list(ROTULO_TIPO), format_func=ROTULO_TIPO.get)
+            cartao_id = c3.selectbox("Cartão (se for compra no cartão)", list(opcoes_cartao),
+                                     format_func=opcoes_cartao.get)
+            c4, c5, c6 = st.columns(3)
+            valor_parcela = c4.number_input("Valor da parcela (R$)", min_value=0.0, step=10.0, format="%.2f")
+            valor_total = c5.number_input("OU valor total (R$)", min_value=0.0, step=50.0, format="%.2f",
+                                          help="Use só se não souber a parcela. Se os dois forem preenchidos, vale a parcela.")
+            num_parcelas = c6.number_input("Total de parcelas", min_value=1, max_value=480, value=10, step=1)
+            c7, c8 = st.columns(2)
+            numero_inicial = c7.number_input("Parcela em que você está", min_value=1, max_value=480, value=1, step=1,
+                                             help="Para contratos em andamento: se já pagou 6 de 36, informe 7.")
+            mes_primeira = seletor_mes("Mês dessa primeira parcela a lançar", "parc_mes", container=c8)
+            enviado = st.form_submit_button("Criar parcelamento")
+        if enviado:
+            try:
+                if not descricao.strip():
+                    raise ValueError("Informe a descrição.")
+                if valor_parcela <= 0 and valor_total <= 0:
+                    raise ValueError("Informe o valor da parcela ou o valor total.")
+                with transacao() as conn:
+                    fc.criar_parcelamento(
+                        conn, descricao.strip(), tipo, int(num_parcelas), mes_primeira,
+                        valor_parcela=valor_parcela if valor_parcela > 0 else None,
+                        valor_total=None if valor_parcela > 0 else valor_total,
+                        cartao_id=cartao_id, numero_inicial=int(numero_inicial))
+                st.success("Parcelamento criado; as parcelas já entram na projeção.")
+                st.rerun()
+            except ValueError as erro:
+                st.error(str(erro))
+    else:
+        # Formulário de Edição de Parcelamento
+        with st.form("form_editar_parcelamento"):
+            st.info(f"Editando: **{parcelamento_a_editar['descricao']}** (Atualize os campos abaixo)")
+            c1, c2, c3 = st.columns(3)
+            descricao = c1.text_input("Descrição", value=parcelamento_a_editar["descricao"])
+            
+            tipo_atual = next((k for k, v in ROTULO_TIPO.items() if v == parcelamento_a_editar["tipo"] or k == parcelamento_a_editar["tipo"]), "cartao")
+            tipo = c2.selectbox("Tipo", list(ROTULO_TIPO), index=list(ROTULO_TIPO.keys()).index(tipo_atual) if tipo_atual in ROTULO_TIPO else 0, format_func=ROTULO_TIPO.get)
+            
+            cartao_atual_id = next((c["id"] for c in cartoes if c["nome"] == parcelamento_a_editar["cartao"]), None)
+            cartao_id = c3.selectbox("Cartão", list(opcoes_cartao), index=list(opcoes_cartao.keys()).index(cartao_atual_id) if cartao_atual_id in opcoes_cartao else 0, format_func=opcoes_cartao.get)
+            
+            valor_parcela = st.number_input("Novo valor da parcela (R$) — atualiza as parcelas em aberto", min_value=0.01, value=float(parcelamento_a_editar["valor_parcela"]), step=10.0, format="%.2f")
+            
+            enviado_edicao = st.form_submit_button("Salvar alterações do parcelamento")
+
+        if enviado_edicao:
+            try:
+                with transacao() as conn:
+                    fc.atualizar_parcelamento(conn, parcelamento_a_editar["id"], descricao.strip(), tipo, cartao_id, valor_parcela)
+                st.success("Parcelamento atualizado com sucesso!")
+                st.rerun()
+            except ValueError as erro:
+                st.error(str(erro))
 
     st.divider()
     st.subheader("Parcelamentos cadastrados")
     with transacao() as conn:
         parcelamentos = fc.listar_parcelamentos(conn, mes_atual())
     linhas = [{**p, "tipo": ROTULO_TIPO[p["tipo"]], "cartao": p["cartao"] or "-",
-               "ultima_competencia": rotulo_mes(p["ultima_competencia"]) if p["ultima_competencia"] else "-"}
+                "ultima_competencia": rotulo_mes(p["ultima_competencia"]) if p["ultima_competencia"] else "-"}
               for p in parcelamentos]
     tabela_com_exclusao(
         renomear(linhas, {"id": "id", "descricao": "Descrição", "tipo": "Tipo", "cartao": "Cartão",
