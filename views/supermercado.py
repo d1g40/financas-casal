@@ -9,6 +9,7 @@ import pandas as pd
 import streamlit as st
 
 from core import compras, nfe, supermercado as sm
+from core import fluxo_caixa as fc
 from core.database import transacao
 from core.fluxo_caixa import listar_pessoas
 from core.util import formatar_brl
@@ -124,6 +125,53 @@ def _aba_importar_xml(pessoas: dict[int, str]) -> None:
         return
 
     sufixo = nota.chave or arquivo.name
+    
+    # ------------------------------------------------------------------
+    # Verificação inteligente de ramo: Supermercado vs Outras Lojas
+    # ------------------------------------------------------------------
+    ramo = nfe.classificar_ramo_estabelecimento(nota.emitente_nome)
+    
+    if ramo == "outro":
+        st.info(f"Estabelecimento identificado como outro ramo: **{nota.emitente_nome}**")
+        
+        # Verifica se a nota possui pagamento parcelado no cartão de crédito (tPag == '03')
+        pag_cartao = next((p for p in nota.pagamentos if p.tPag == "03" and p.n_parcelas > 1), None)
+        
+        if pag_cartao:
+            st.warning(f"Detectada compra parcelada em {pag_cartao.n_parcelas}x no cartão de crédito nesta nota!")
+            
+            with transacao() as conn:
+                cartoes = fc.listar_cartoes(conn)
+            
+            opcoes_cartao = {c["id"]: c["nome"] for c in cartoes}
+            if not opcoes_cartao:
+                st.error("Você precisa cadastrar pelo menos um cartão de crédito no módulo de Fluxo de Caixa antes de importar parcelamentos.")
+            else:
+                cartao_escolhido_id = st.selectbox("Escolha o cartão usado nesta compra", list(opcoes_cartao.keys()), format_func=opcoes_cartao.get, key=f"xml_cartao_outro_{sufixo}")
+                
+                if st.button("Cadastrar como Parcelamento", key=f"btn_cad_parc_{sufixo}", type="primary"):
+                    try:
+                        with transacao() as conn:
+                            fc.criar_parcelamento(
+                                conn,
+                                descricao=f"Compra: {nota.emitente_nome}",
+                                tipo="cartao",
+                                num_parcelas=pag_cartao.n_parcelas,
+                                mes_primeira_parcela=nota.data_emissao.strftime("%Y-%m"),
+                                valor_total=nota.valor_nota,
+                                cartao_id=cartao_escolhido_id
+                            )
+                        st.success("Parcelamento cadastrado com sucesso no Fluxo de Caixa!")
+                        st.rerun()
+                    except Exception as erro:
+                        st.error(f"Erro ao criar parcelamento: {erro}")
+        else:
+            st.caption("Esta nota de outro comércio não é um parcelamento de cartão. Você pode tratá-la como lançamento avulso no Fluxo de Caixa se desejar.")
+        return
+
+    # ------------------------------------------------------------------
+    # Fluxo normal para Supermercados
+    # ------------------------------------------------------------------
     c1, c2 = st.columns(2)
     mercado = c1.text_input("Mercado", value=existente["nome"] if existente else nota.emitente_nome,
                             disabled=bool(existente), key=f"xml_mercado_{sufixo}",
@@ -135,7 +183,7 @@ def _aba_importar_xml(pessoas: dict[int, str]) -> None:
     nomes = list(pessoas.values())
     padrao = st.radio("Por padrão, os itens desta nota são de:", [CONJUNTO, *nomes], horizontal=True,
                       key=f"xml_padrao_{sufixo}")
-    st.caption("Ajuste a coluna **Dono** item a item quando a nota tiver itens de uso individual.")
+    st.caption("Aжитe a coluna **Dono** item a item quando a nota tiver itens de uso individual.")
     base = pd.DataFrame([{"Produto": i.descricao, "Qtd": i.quantidade, "Un": i.unidade,
                           "Preço unit.": i.preco_unitario, "Total": i.valor_total, "Dono": padrao}
                          for i in nota.itens])
@@ -259,7 +307,7 @@ def _aba_precos() -> None:
         historico = sm.historico_precos(conn, escolhido)
     st.markdown("**Por mercado** (do mais barato na média ao mais caro)")
     tabela = pd.DataFrame(resumo).rename(columns={"mercado": "Mercado", "ultimo": "Último", "medio": "Médio",
-                                                   "minimo": "Menor", "registros": "Registros"})
+                                                  "minimo": "Menor", "registros": "Registros"})
     st.dataframe(moeda(tabela, ["Último", "Médio", "Menor"]), hide_index=True)
 
     df = pd.DataFrame(historico)
@@ -344,3 +392,4 @@ def _aba_comparar() -> None:
     st.dataframe(matriz.apply(lambda coluna: coluna.map(lambda v: formatar_brl(v) if pd.notna(v) else "—")))
     st.caption("Os preços são por unidade de venda; produtos com embalagens diferentes só se comparam se forem "
                "o mesmo item (mesmo EAN ou mesmo nome).")
+    
